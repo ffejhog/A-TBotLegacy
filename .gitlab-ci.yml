@@ -1,0 +1,30 @@
+stages:
+    - buildjar
+    - builddocker
+
+variables:
+    CONTAINER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
+    
+
+buildjar:
+    image: gradle:latest
+    stage: buildjar
+    script: ./gradlew shadowJar
+    artifacts:
+        paths:
+        - build/libs/DBot.jar
+        
+builddocker:
+    tags: 
+        - arm
+    services: 
+        - docker:dind
+    image: docker:stable
+    stage: builddocker
+    script: 
+        - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+        - docker build -t $CONTAINER_IMAGE .
+        - docker push $CONTAINER_IMAGE
+    only:
+    - master
